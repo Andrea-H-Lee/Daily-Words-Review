@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>經典接龍：單字家族分類大挑戰</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 圖標 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@400;600;800&display=swap');
+    body {
+      font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+      background-color: #0c111d;
+    }
+    /* 傳統高質感純墨綠色牌桌背景 */
+    .felt-table {
+      background-color: #0e3e1d;
+      position: relative;
+    }
+    /* 自訂美化捲軸 */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col overflow-x-hidden select-none">
+
+  <!-- 頂部導航列 -->
+  <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 shadow-md z-10">
+    <div class="max-w-7xl mx-auto flex justify-between items-center gap-4">
+      
+      <!-- 標題與標誌 -->
+      <div class="flex items-center gap-2.5">
+        <div class="bg-emerald-600 text-white w-9 h-9 rounded-lg flex items-center justify-center shadow-md">
+          <i class="fa-solid fa-diamond text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-base md:text-lg font-bold tracking-tight text-white leading-tight">單字家族分類接龍</h1>
+          <p class="hidden sm:block text-[11px] text-slate-400 leading-tight">點擊右上發牌堆開始 | 雙擊已翻開的牌可查詢中文意思</p>
+        </div>
+      </div>
+      
+      <!-- 遊戲數據儀表板 -->
+      <div class="flex items-center gap-4 bg-slate-850 px-4 py-1.5 rounded-xl border border-slate-800">
+        <div class="text-center">
+          <div class="text-[10px] text-slate-400 font-medium">步數</div>
+          <div id="moveCounter" class="text-sm md:text-base font-bold text-emerald-400 leading-none mt-0.5">0</div>
+        </div>
+        <div class="h-6 w-px bg-slate-700"></div>
+        <div class="text-center">
+          <div class="text-[10px] text-slate-400 font-medium">時間</div>
+          <div id="timerDisplay" class="text-sm md:text-base font-bold text-emerald-400 leading-none mt-0.5">00:00</div>
+        </div>
+        <div class="h-6 w-px bg-slate-700"></div>
+        <div class="text-center">
+          <div class="text-[10px] text-slate-400 font-medium">已完成</div>
+          <div id="progressCount" class="text-sm md:text-base font-bold text-emerald-400 leading-none mt-0.5">0 / 7</div>
+        </div>
+      </div>
+
+      <!-- 控制與彈出按鈕 -->
+      <div class="flex items-center gap-1.5">
+        <!-- 規則說明按鈕 -->
+        <button id="rulesBtn" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:text-white text-slate-300 w-10 h-10 rounded-xl transition duration-150 flex items-center justify-center" title="遊戲規則">
+          <i class="fa-solid fa-circle-question text-lg"></i>
+        </button>
+        <!-- 單字圖鑑按鈕 -->
+        <button id="handbookBtn" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:text-white text-slate-300 w-10 h-10 rounded-xl transition duration-150 flex items-center justify-center" title="單字圖鑑">
+          <i class="fa-solid fa-book text-lg"></i>
+        </button>
+        <!-- 靜音控制按鈕 -->
+        <button id="muteBtn" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:text-white text-slate-300 w-10 h-10 rounded-xl transition duration-150 flex items-center justify-center" title="音效切換">
+          <i class="fa-solid fa-volume-high text-lg" id="muteIcon"></i>
+        </button>
+        <!-- 重新開始按鈕 -->
+        <button id="restartBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-10 px-4 rounded-xl transition duration-150 shadow-md flex items-center gap-1.5">
+          <i class="fa-solid fa-rotate-left"></i>
+          <span class="hidden sm:inline">重新開始</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- 主遊戲區域 (佔滿 100% 寬度) -->
+  <main class="flex-1 w-full max-w-7xl mx-auto p-2 sm:p-4 md:p-6 flex flex-col items-center justify-center">
+    <!-- 仿傳統高質感純墨綠色牌桌底色與陰影 -->
+    <div class="felt-table rounded-3xl border border-emerald-950/40 shadow-inner w-full overflow-hidden flex items-center justify-center">
+      <canvas id="gameCanvas" class="w-full h-auto block"></canvas>
+    </div>
+  </main>
+
+  <!-- 彈出式視窗：遊戲規則 -->
+  <div id="rulesModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl max-w-lg w-full mx-4 relative transform scale-95 transition-all duration-300">
+      <button class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl close-modal-btn">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-circle-question text-emerald-400"></i>
+        <span>遊戲規則與接龍技巧</span>
+      </h3>
+      <div class="space-y-3 text-sm text-slate-300 max-h-[60vh] overflow-y-auto pr-2">
+        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800">
+          <strong class="text-emerald-400">✨ 新增：雙擊查詢中文翻譯</strong>
+          <p class="mt-1 text-xs">對著牌桌上任何已翻開的牌<strong>「快速點擊兩下」</strong>即可平滑翻面查看中文意思！3 秒後會自動翻回，或再次雙擊手動翻回。</p>
+        </div>
+        <ul class="space-y-2 list-disc pl-5">
+          <li><strong>右上發牌堆</strong>：點擊發牌堆會翻開一張牌移至廢牌堆展示。當發牌堆點完時即無法再點。</li>
+          <li><strong>左上目標槽</strong>：
+            <ul class="list-circle pl-5 mt-1 space-y-1 text-slate-400 text-xs">
+              <li>目標槽空置時：<strong>「只能放置主題卡」</strong>。</li>
+              <li>已有主題卡時：可以將該家族的內容卡放上去。</li>
+              <li><strong>支援整疊拖入</strong>：若有多張正確內容卡已在工作疊排好，您可以直接將整疊一次拖進目標槽歸位。</li>
+              <li>湊齊該家族所有卡牌後，該槽將觸發發光特效，隨後自動消除，並清空該 Slot 以放置新主題卡！</li>
+            </ul>
+          </li>
+          <li><strong>左下工作疊與堆疊限制</strong>：
+            <ul class="list-circle pl-5 mt-1 space-y-1 text-slate-400 text-xs">
+              <li>主題卡<strong>可以</strong>疊加在同家族內容卡下方。</li>
+              <li>內容卡<strong>絕對不能</strong>疊加在主題卡下方。</li>
+              <li>工作疊最上方卡牌被移走時，下方蓋住的卡牌會自動翻開。</li>
+            </ul>
+          </li>
+          <li><strong>平滑飛回</strong>：當卡牌被拖放到不合法的區域時，會以流暢的動力學動畫飛回原位，絕不失蹤。</li>
+        </ul>
+      </div>
+      <button class="mt-6 w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl transition close-modal-btn">
+        我知道了
+      </button>
+    </div>
+  </div>
+
+  <!-- 彈出式視窗：單字家族圖鑑 -->
+  <div id="handbookModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl max-w-2xl w-full mx-4 relative transform scale-95 transition-all duration-300">
+      <button class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl close-modal-btn">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-book text-emerald-400"></i>
+        <span>單字家族圖鑑 (Word Families)</span>
+      </h3>
+      <div class="space-y-3 overflow-y-auto max-h-[60vh] pr-2" id="familyListContainer">
+        <!-- 動態生成單字家族清單 -->
+      </div>
+      <button class="mt-6 w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl transition close-modal-btn">
+        關閉圖鑑
+      </button>
+    </div>
+  </div>
+
+  <!-- 贏家通關彈窗 -->
+  <div id="victoryModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="bg-slate-900 border border-emerald-500/30 p-8 rounded-3xl shadow-2xl max-w-md w-full mx-4 text-center transform scale-90 transition-all duration-300" id="victoryContent">
+      <div class="w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/40 animate-bounce">
+        <i class="fa-solid fa-crown text-4xl animate-pulse"></i>
+      </div>
+      <h2 class="text-3xl font-black text-white mb-2 tracking-tight">恭喜通關！🎉</h2>
+      <p class="text-slate-400 text-sm mb-6">您展現了驚人的單字記憶力與接龍技巧！</p>
+      
+      <div class="grid grid-cols-2 gap-4 bg-slate-850 p-4 rounded-2xl border border-slate-800 mb-6">
+        <div>
+          <div class="text-xs text-slate-400">總步數</div>
+          <div id="finalMoves" class="text-xl font-bold text-emerald-400">0</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-400">總耗時</div>
+          <div id="finalTime" class="text-xl font-bold text-emerald-400">00:00</div>
+        </div>
+      </div>
+      
+      <button id="modalPlayAgainBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-emerald-700/20 transition duration-150 flex items-center justify-center gap-2">
+        <i class="fa-solid fa-play"></i>
+        <span>再玩一次</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- JavaScript 邏輯部分 -->
+  <script>
+    // 1. 遊戲資料結構
+    const WORD_FAMILIES = [
+      {
+        theme: "Apparent Temperature",
+        contents: ["Wind Chill Factor", "Heat Index"]
+      },
+      {
+        theme: "Taxonomy",
+        contents: ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"]
+      },
+      {
+        theme: "Nutrients",
+        contents: ["Carbohydrates", "Proteins", "Fats", "Vitamins", "Minerals", "Water"]
+      },
+      {
+        theme: "Phytochemicals",
+        contents: ["Lutein", "Zeaxanthin", "Carotene", "Lycopene", "Chlorophyll"]
+      },
+      {
+        theme: "age -genarian",
+        contents: ["denarian", "vicenarian", "tricenarian", "quadragenarian", "quinquagenarian", "sexagenarian", "septuagenarian", "octogenarian", "nonagenarian", "centenarian", "supercentenarian"]
+      },
+      {
+        theme: "Suprasegmental",
+        contents: ["pitch", "intonation", "stress", "rhythm", "tempo"]
+      },
+      {
+        theme: "place of articulation",
+        contents: ["bilabial", "labiodental", "dental", "alveolar", "palatal", "velar", "glottal"]
+      }
+    ];
+
+    // 中文意思翻譯對照字典 (年齡層系列依規定顯示數字區間)
+    const TRANSLATIONS = {
+      "Apparent Temperature": "體感溫度",
+      "Wind Chill Factor": "風寒效應",
+      "Heat Index": "酷熱指數",
+      
+      "Taxonomy": "分類學",
+      "Kingdom": "界",
+      "Phylum": "門",
+      "Class": "綱",
+      "Order": "目",
+      "Family": "科",
+      "Genus": "屬",
+      "Species": "種",
+      
+      "Nutrients": "營養素",
+      "Carbohydrates": "碳水化合物",
+      "Proteins": "蛋白質",
+      "Fats": "脂肪",
+      "Vitamins": "維生素",
+      "Minerals": "礦物質",
+      "Water": "水",
+      
+      "Phytochemicals": "植物化學素",
+      "Lutein": "葉黃素",
+      "Zeaxanthin": "玉米黃素",
+      "Carotene": "胡蘿蔔素",
+      "Lycopene": "茄紅素",
+      "Chlorophyll": "葉綠素",
+      
+      "age -genarian": "幾十歲的人",
+      "denarian": "10-19 歲",
+      "vicenarian": "20-29 歲",
+      "tricenarian": "30-39 歲",
+      "quadragenarian": "40-49 歲",
+      "quinquagenarian": "50-59 歲",
+      "sexagenarian": "60-69 歲",
+      "septuagenarian": "70-79 歲",
+      "octogenarian": "80-89 歲",
+      "nonagenarian": "90-99 歲",
+      "centenarian": "100-109 歲",
+      "supercentenarian": "110 歲以上",
+      
+      "Suprasegmental": "超音段",
+      "pitch": "音高",
+      "intonation": "語調",
+      "stress": "重音",
+      "rhythm": "節奏",
+      "tempo": "語速",
+      
+      "place of articulation": "發音部位",
+      "bilabial": "雙唇音",
+      "labiodental": "唇齒音",
+      "dental": "齒音",
+      "alveolar": "齒齦音",
+      "palatal": "硬顎音",
+      "velar": "軟顎音",
+      "glottal": "聲門音"
+    };
+
+    // 精緻家族色系定義 (主題卡用)
+    const FAMILY_COLORS = [
+      { main: "#EF4444", bg: "#FEE2E2", text: "#991B1B", label: "體感溫度" }, 
+      { main: "#3B82F6", bg: "#DBEAFE", text: "#1E40AF", label: "分類學" }, 
+      { main: "#10B981", bg: "#D1FAE5", text: "#065F46", label: "營養素" }, 
+      { main: "#F59E0B", bg: "#FEF3C7", text: "#92400E", label: "植物化學" }, 
+      { main: "#8B5CF6", bg: "#EDE9FE", text: "#5B21B6", label: "年齡層" }, 
+      { main: "#EC4899", bg: "#FCE7F3", text: "#9D174D", label: "超音段" }, 
+      { main: "#06B6D4", bg: "#CFFAFE", text: "#155E75", label: "發音部位" }  
+    ];
+
+    // 2. Web Audio API 音效產生器
+    class GameAudio {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      }
+      playFlip() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        let osc = this.ctx.createOscillator();
+        let gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(70, this.ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.12);
+      }
+      playPlace() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        let osc = this.ctx.createOscillator();
+        let gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(280, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.15);
+      }
+      playError() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        let osc = this.ctx.createOscillator();
+        let gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(110, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 0.22);
+        gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.22);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.22);
+      }
+      playComplete() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const notes = [261.63, 329.63, 392.00, 523.25]; 
+        notes.forEach((freq, index) => {
+          let osc = this.ctx.createOscillator();
+          let gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + index * 0.08);
+          gain.gain.setValueAtTime(0.06, now + index * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + index * 0.08);
+          osc.stop(now + index * 0.08 + 0.35);
+        });
+      }
+      playVictory() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, index) => {
+          let osc = this.ctx.createOscillator();
+          let gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + index * 0.08);
+          gain.gain.setValueAtTime(0.08, now + index * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.45);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + index * 0.08);
+          osc.stop(now + index * 0.08 + 0.45);
+        });
+      }
+    }
+    const sfx = new GameAudio();
+
+    // 圓角矩形相容性修正
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+        if (typeof r === 'number') {
+          r = [r, r, r, r];
+        } else if (Array.isArray(r)) {
+          if (r.length === 1) r = [r[0], r[0], r[0], r[0]];
+          else if (r.length === 2) r = [r[0], r[1], r[0], r[1]];
+          else if (r.length === 3) r = [r[0], r[1], r[2], r[1]];
+        } else {
+          r = [0, 0, 0, 0];
+        }
+        this.moveTo(x + r[0], y);
+        this.lineTo(x + w - r[1], y);
+        this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+        this.lineTo(x + w, y + h - r[2]);
+        this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+        this.lineTo(x + r[3], y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+        this.lineTo(x, y + r[0]);
+        this.quadraticCurveTo(x, y, x + r[0], y);
+        this.closePath();
+        return this;
+      };
+    }
+
+    // 文字長度自適應縮小函式
+    function fitText(ctx, text, maxWidth, baseSize) {
+      let size = baseSize;
+      ctx.font = `bold ${size}px 'Outfit', 'Noto Sans TC', sans-serif`;
+      while (ctx.measureText(text).width > maxWidth && size > 6) {
+        size -= 0.5;
+        ctx.font = `bold ${size}px 'Outfit', 'Noto Sans TC', sans-serif`;
+      }
+      return size;
+    }
+
+    // 3. 粒子特效類別
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 8;
+        this.vy = (Math.random() - 0.5) * 8 - 3;
+        this.size = Math.random() * 4 + 3;
+        this.alpha = 1;
+        this.decay = Math.random() * 0.015 + 0.015;
+        this.color = color;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.15; 
+        this.alpha -= this.decay;
+      }
+      draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // 4. 卡牌類別 (Card)
+    class Card {
+      constructor(id, text, isTheme, familyIndex) {
+        this.id = id;
+        this.text = text;
+        this.isTheme = isTheme;
+        this.familyIndex = familyIndex;
+        
+        // 狀態
+        this.isFaceUp = false;
+        this.isDragging = false;
+        this.alpha = 1.0;
+        this.glowIntensity = 0; 
+        this.isMatched = false;  
+        
+        // 幾何與物理 (寬高會由 Game 依螢幕比例動態計算分配)
+        this.width = 110;
+        this.height = 155;
+        this.x = 0;
+        this.y = 0;
+        this.targetX = 0;
+        this.targetY = 0;
+        
+        // 3D 翻轉動畫變數
+        this.scaleX = 1.0;
+        this.isFlipping = false;
+        this.flipTargetState = false;
+
+        // 中文翻譯功能變數
+        this.isShowingTranslation = false;
+        this.isTranslationFlipping = false;
+        this.translationFlipTarget = false;
+        this.translationTimer = null;
+      }
+
+      flip() {
+        if (this.isFlipping || this.isTranslationFlipping) return;
+        this.isFlipping = true;
+        this.flipTargetState = !this.isFaceUp;
+      }
+
+      // 切換中文翻譯 (雙擊觸發)
+      toggleTranslation() {
+        if (!this.isFaceUp || this.isFlipping || this.isTranslationFlipping) return;
+        this.isTranslationFlipping = true;
+        this.translationFlipTarget = !this.isShowingTranslation;
+        
+        if (this.translationTimer) {
+          clearTimeout(this.translationTimer);
+          this.translationTimer = null;
+        }
+      }
+
+      update() {
+        // 1. 位置平滑飛移 (絲滑動力學)
+        if (!this.isDragging) {
+          const lerpFactor = 0.22; 
+          this.x += (this.targetX - this.x) * lerpFactor;
+          this.y += (this.targetY - this.y) * lerpFactor;
+          if (Math.abs(this.x - this.targetX) < 0.2) this.x = this.targetX;
+          if (Math.abs(this.y - this.targetY) < 0.2) this.y = this.targetY;
+        }
+
+        // 2. 常規翻牌 3D 效果
+        if (this.isFlipping) {
+          if (this.scaleX > 0 && this.isFaceUp !== this.flipTargetState) {
+            this.scaleX -= 0.18;
+            if (this.scaleX <= 0) {
+              this.scaleX = 0;
+              this.isFaceUp = this.flipTargetState;
+            }
+          } else {
+            this.scaleX += 0.18;
+            if (this.scaleX >= 1.0) {
+              this.scaleX = 1.0;
+              this.isFlipping = false;
+            }
+          }
+        }
+
+        // 3. 中文翻譯翻面 3D 效果
+        if (this.isTranslationFlipping) {
+          if (this.scaleX > 0 && this.isShowingTranslation !== this.translationFlipTarget) {
+            this.scaleX -= 0.18;
+            if (this.scaleX <= 0) {
+              this.scaleX = 0;
+              this.isShowingTranslation = this.translationFlipTarget;
+            }
+          } else {
+            this.scaleX += 0.18;
+            if (this.scaleX >= 1.0) {
+              this.scaleX = 1.0;
+              this.isTranslationFlipping = false;
+
+              // 如果切換成顯示翻譯，設定 3 秒後自動翻回英文
+              if (this.isShowingTranslation) {
+                this.translationTimer = setTimeout(() => {
+                  this.toggleTranslation();
+                }, 3000);
+              }
+            }
+          }
+        }
+      }
+
+      draw(ctx, scaleRatio) {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+
+        // 計算卡牌實體投影 (等比例縮放陰影)
+        ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+        ctx.shadowBlur = (this.isDragging ? 22 : 8) * scaleRatio;
+        ctx.shadowOffsetX = (this.isDragging ? 6 : 2) * scaleRatio;
+        ctx.shadowOffsetY = (this.isDragging ? 12 : 3) * scaleRatio;
+
+        // 應用 3D 縮放旋轉
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+        ctx.scale(this.scaleX, 1);
+        ctx.translate(-(this.x + this.width / 2), -(this.y + this.height / 2));
+
+        // 繪製卡牌主體圓角
+        ctx.beginPath();
+        ctx.roundRect(this.x, this.y, this.width, this.height, 10 * scaleRatio);
+        
+        if (this.isFaceUp) {
+          // --- 正面卡牌 ---
+          ctx.shadowColor = "transparent";
+
+          if (this.isTheme) {
+            // A. 主題卡外框與底板
+            ctx.fillStyle = "#FCFDF9"; 
+            ctx.fill();
+
+            ctx.lineWidth = 1.5 * scaleRatio;
+            ctx.strokeStyle = FAMILY_COLORS[this.familyIndex].main;
+            ctx.stroke();
+
+            // 主題卡上方色塊
+            ctx.fillStyle = FAMILY_COLORS[this.familyIndex].main;
+            ctx.beginPath();
+            ctx.roundRect(this.x, this.y, this.width, 38 * scaleRatio, [10 * scaleRatio, 10 * scaleRatio, 0, 0]);
+            ctx.fill();
+
+            // 頂部小標籤
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.font = `bold ${10 * scaleRatio}px 'Outfit', sans-serif`;
+            ctx.textAlign = "center";
+            ctx.fillText("★ THEME ★", this.x + this.width / 2, this.y + 16 * scaleRatio);
+
+            // 中間裝飾橫線
+            ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+            ctx.fillRect(this.x + 10 * scaleRatio, this.y + 24 * scaleRatio, this.width - 20 * scaleRatio, 1);
+
+            // 主題文字 (若是顯示翻譯，則顯示對應的中文意思)
+            ctx.fillStyle = FAMILY_COLORS[this.familyIndex].text;
+            const textToDraw = this.isShowingTranslation ? TRANSLATIONS[this.text] : this.text;
+            let fontSize = fitText(ctx, textToDraw, this.width - 16 * scaleRatio, 14 * scaleRatio);
+            ctx.font = `bold ${fontSize}px 'Outfit', 'Noto Sans TC', sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(textToDraw, this.x + this.width / 2, this.y + 95 * scaleRatio);
+
+          } else {
+            // B. 內容卡：全白底 + 黑色細外框 (無分類提示，極簡乾淨)
+            ctx.fillStyle = "#FFFFFF"; 
+            ctx.fill();
+
+            ctx.lineWidth = 1.5 * scaleRatio;
+            ctx.strokeStyle = "#000000"; 
+            ctx.stroke();
+
+            // 內容單字主文字 (若為顯示翻譯狀態，則顯示中文意思)
+            ctx.fillStyle = "#111827";
+            const textToDraw = this.isShowingTranslation ? TRANSLATIONS[this.text] : this.text;
+            let fontSize = fitText(ctx, textToDraw, this.width - 14 * scaleRatio, 13 * scaleRatio);
+            ctx.font = `bold ${fontSize}px 'Outfit', 'Noto Sans TC', sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(textToDraw, this.x + this.width / 2, this.y + this.height / 2);
+          }
+
+          // 湊齊消除時的發光特效
+          if (this.glowIntensity > 0) {
+            ctx.save();
+            ctx.strokeStyle = `rgba(253, 224, 71, ${this.glowIntensity})`; 
+            ctx.lineWidth = (4 + this.glowIntensity * 4) * scaleRatio;
+            ctx.shadowColor = "#FDE047";
+            ctx.shadowBlur = 10 * scaleRatio;
+            ctx.beginPath();
+            ctx.roundRect(this.x - 2 * scaleRatio, this.y - 2 * scaleRatio, this.width + 4 * scaleRatio, this.height + 4 * scaleRatio, 12 * scaleRatio);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+        } else {
+          // --- 反面卡牌：經典復古撲克花紋 ---
+          ctx.fillStyle = "#1e3a8a"; 
+          ctx.fill();
+          
+          ctx.shadowColor = "transparent";
+
+          // 外層金線
+          ctx.strokeStyle = "#fbbf24"; 
+          ctx.lineWidth = 1.5 * scaleRatio;
+          ctx.beginPath();
+          ctx.roundRect(this.x + 4 * scaleRatio, this.y + 4 * scaleRatio, this.width - 8 * scaleRatio, this.height - 8 * scaleRatio, 8 * scaleRatio);
+          ctx.stroke();
+
+          // 幾何交叉格子
+          ctx.strokeStyle = "rgba(251, 191, 36, 0.12)";
+          ctx.lineWidth = 1 * scaleRatio;
+          ctx.beginPath();
+          for (let k = -this.height; k < this.width + this.height; k += 16 * scaleRatio) {
+            ctx.moveTo(this.x + k, this.y);
+            ctx.lineTo(this.x + k - this.height, this.y + this.height);
+            ctx.moveTo(this.x + k, this.y);
+            ctx.lineTo(this.x + k + this.height, this.y + this.height);
+          }
+          ctx.stroke();
+
+          // 星型徽章
+          ctx.fillStyle = "#fbbf24";
+          ctx.font = `${24 * scaleRatio}px 'Outfit', sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("✦", this.x + this.width / 2, this.y + this.height / 2);
+        }
+
+        ctx.restore();
+      }
+    }
+
+    // 5. 遊戲核心控制類別 (Game)
+    class WordSolitaireGame {
+      constructor() {
+        this.canvas = document.getElementById("gameCanvas");
+        this.ctx = this.canvas.getContext("2d");
+        
+        // 幾何比例基準，自適應時動態重算
+        this.scaleRatio = 1.0;
+        
+        // 牌疊容器
+        this.allCards = [];
+        this.drawPile = [];
+        this.wastePile = [];
+        this.targetSlots = [[], [], [], []]; 
+        this.workPiles = [[], [], [], []];   
+        
+        // 動畫與雙擊控制
+        this.draggedStack = null; 
+        this.particles = [];
+        this.completeTimers = []; 
+        this.lastTapCard = null;
+        this.lastTapTime = 0;
+        
+        // 計數器
+        this.moves = 0;
+        this.startTime = null;
+        this.timerInterval = null;
+        this.completedFamilies = new Set(); 
+        this.isGameOver = false;
+
+        // 初始化佈局與綁定
+        this.bindEvents();
+        this.initGame();
+        
+        // 自適應適配
+        this.resize();
+        window.addEventListener("resize", () => this.resize());
+        
+        this.startTimer();
+      }
+
+      // RWD 自適應計算
+      resize() {
+        const container = this.canvas.parentElement;
+        const containerWidth = container.clientWidth;
+        
+        // 依據容器寬度自適應 Canvas 解析度，維持 5:4 比例
+        this.canvas.width = containerWidth;
+        this.canvas.height = containerWidth * 0.76; // 稍微寬扁一點便於行動端
+        
+        // 以 1000 寬度作為基本縮放基準比例
+        this.scaleRatio = this.canvas.width / 1000;
+        
+        // 重新等比縮放卡牌
+        this.cardWidth = 110 * this.scaleRatio;
+        this.cardHeight = 155 * this.scaleRatio;
+        
+        // 重新分配位置座標 (使卡牌在不同寬度下均勻分佈)
+        // 為了極佳的排版，我們將 4個目標槽、廢牌堆、發牌堆 在頂部完美均勻分散
+        const padding = 30 * this.scaleRatio;
+        const availableWidth = this.canvas.width - padding * 2;
+        const colSpacing = availableWidth / 6.5; // 水平等分 7 個位置
+        
+        // 左上目標槽 X 座標 (0, 1, 2, 3 欄)
+        this.targetSlotsX = [0, 1, 2, 3].map(i => padding + i * colSpacing);
+        this.targetSlotsY = 40 * this.scaleRatio;
+        
+        // 左下工作疊 X 座標 (與目標槽對齊)
+        this.workPilesX = [0, 1, 2, 3].map(i => padding + i * colSpacing);
+        this.workPilesY = 240 * this.scaleRatio;
+        
+        // 右上廢牌堆 (5 欄) 與發牌堆 (6 欄)
+        this.wastePileX = padding + 4.7 * colSpacing;
+        this.wastePileY = 40 * this.scaleRatio;
+        
+        this.drawPileX = padding + 5.7 * colSpacing;
+        this.drawPileY = 40 * this.scaleRatio;
+        
+        // 套用幾何數據到所有卡片
+        this.allCards.forEach(card => {
+          card.width = this.cardWidth;
+          card.height = this.cardHeight;
+        });
+
+        // 重新安置所有堆疊座標
+        this.workPiles.forEach((pile, idx) => {
+          this.arrangePile(pile, this.workPilesX[idx], this.workPilesY);
+        });
+
+        this.targetSlots.forEach((slot, idx) => {
+          slot.forEach(card => {
+            card.targetX = this.targetSlotsX[idx];
+            card.targetY = this.targetSlotsY;
+          });
+        });
+
+        this.drawPile.forEach(card => {
+          card.targetX = this.drawPileX;
+          card.targetY = this.drawPileY;
+        });
+
+        this.wastePile.forEach(card => {
+          if (!card.isDragging) {
+            card.targetX = this.wastePileX;
+            card.targetY = this.wastePileY;
+          }
+        });
+      }
+
+      initGame() {
+        this.allCards = [];
+        this.drawPile = [];
+        this.wastePile = [];
+        this.targetSlots = [[], [], [], []];
+        this.workPiles = [[], [], [], []];
+        this.draggedStack = null;
+        this.particles = [];
+        this.completeTimers = [];
+        this.completedFamilies.clear();
+        this.isGameOver = false;
+        
+        this.moves = 0;
+        document.getElementById("moveCounter").textContent = "0";
+        document.getElementById("progressCount").textContent = "0 / 7";
+        this.resetTimer();
+
+        // 生成 49 張卡片
+        let cardId = 0;
+        WORD_FAMILIES.forEach((family, fIdx) => {
+          this.allCards.push(new Card(cardId++, family.theme, true, fIdx));
+          family.contents.forEach(word => {
+            this.allCards.push(new Card(cardId++, word, false, fIdx));
+          });
+        });
+
+        this.shuffle(this.allCards);
+
+        // 分配工作疊 (2, 3, 4, 5 張)
+        let distributeCounts = [2, 3, 4, 5];
+        let currentCardIndex = 0;
+        for (let pileIdx = 0; pileIdx < 4; pileIdx++) {
+          const count = distributeCounts[pileIdx];
+          for (let j = 0; j < count; j++) {
+            let card = this.allCards[currentCardIndex++];
+            this.workPiles[pileIdx].push(card);
+            
+            if (j === count - 1) {
+              card.isFaceUp = true;
+            } else {
+              card.isFaceUp = false;
+            }
+          }
+        }
+
+        // 賸餘牌置入發牌堆
+        while (currentCardIndex < this.allCards.length) {
+          let card = this.allCards[currentCardIndex++];
+          card.isFaceUp = false;
+          this.drawPile.push(card);
+        }
+
+        this.updateSidebarUI();
+      }
+
+      shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+      }
+
+      arrangePile(pile, startX, startY, snapImmediately = false) {
+        pile.forEach((card, idx) => {
+          card.targetX = startX;
+          let offset = 0;
+          for (let i = 0; i < idx; i++) {
+            // 面朝上時錯開更多以便閱讀 (依縮放比動態調整)
+            offset += (pile[i].isFaceUp ? 28 : 15) * this.scaleRatio;
+          }
+          card.targetY = startY + offset;
+          if (snapImmediately) {
+            card.x = card.targetX;
+            card.y = card.targetY;
+          }
+        });
+      }
+
+      // 6. 互動手勢與雙擊偵測
+      bindEvents() {
+        this.canvas.addEventListener("mousedown", (e) => this.handleStart(e));
+        this.canvas.addEventListener("mousemove", (e) => this.handleMove(e));
+        this.canvas.addEventListener("mouseup", (e) => this.handleEnd(e));
+
+        this.canvas.addEventListener("touchstart", (e) => {
+          e.preventDefault();
+          this.handleStart(e);
+        }, { passive: false });
+        this.canvas.addEventListener("touchmove", (e) => {
+          e.preventDefault();
+          this.handleMove(e);
+        }, { passive: false });
+        this.canvas.addEventListener("touchend", (e) => {
+          e.preventDefault();
+          this.handleEnd(e);
+        }, { passive: false });
+      }
+
+      getCanvasCoords(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: (clientX - rect.left) * (this.canvas.width / rect.width),
+          y: (clientY - rect.top) * (this.canvas.height / rect.height)
+        };
+      }
+
+      handleStart(e) {
+        if (this.isGameOver) return;
+        const pos = this.getCanvasCoords(e);
+        
+        // 點擊發牌堆檢測
+        if (pos.x >= this.drawPileX && pos.x <= this.drawPileX + this.cardWidth &&
+            pos.y >= this.drawPileY && pos.y <= this.drawPileY + this.cardHeight) {
+          this.handleDrawPileClick();
+          return;
+        }
+
+        let clickedCard = null;
+        let originPileRef = null;
+        let dragStartIndex = -1;
+
+        // A. 廢牌堆最上層
+        if (this.wastePile.length > 0) {
+          let topCard = this.wastePile[this.wastePile.length - 1];
+          if (pos.x >= topCard.x && pos.x <= topCard.x + this.cardWidth &&
+              pos.y >= topCard.y && pos.y <= topCard.y + this.cardHeight) {
+            clickedCard = topCard;
+            originPileRef = this.wastePile;
+            dragStartIndex = this.wastePile.length - 1;
+          }
+        }
+
+        // B. 工作疊卡片檢測 (優先點擊最上層)
+        if (!clickedCard) {
+          for (let pileIdx = 0; pileIdx < 4; pileIdx++) {
+            let pile = this.workPiles[pileIdx];
+            for (let cardIdx = pile.length - 1; cardIdx >= 0; cardIdx--) {
+              let card = pile[cardIdx];
+              if (!card.isFaceUp) continue;
+              
+              let isInside = false;
+              if (cardIdx === pile.length - 1) {
+                isInside = (pos.x >= card.x && pos.x <= card.x + this.cardWidth &&
+                            pos.y >= card.y && pos.y <= card.y + this.cardHeight);
+              } else {
+                isInside = (pos.x >= card.x && pos.x <= card.x + this.cardWidth &&
+                            pos.y >= card.y && pos.y <= card.y + 28 * this.scaleRatio);
+              }
+
+              if (isInside) {
+                clickedCard = card;
+                originPileRef = pile;
+                dragStartIndex = cardIdx;
+                break;
+              }
+            }
+            if (clickedCard) break;
+          }
+        }
+
+        // C. 目標槽卡片檢測
+        if (!clickedCard) {
+          for (let slotIdx = 0; slotIdx < 4; slotIdx++) {
+            let slot = this.targetSlots[slotIdx];
+            if (slot.length > 0 && !this.completeTimers[slotIdx]) {
+              let topCard = slot[slot.length - 1];
+              if (pos.x >= topCard.x && pos.x <= topCard.x + this.cardWidth &&
+                  pos.y >= topCard.y && pos.y <= topCard.y + this.cardHeight) {
+                clickedCard = topCard;
+                originPileRef = slot;
+                dragStartIndex = slot.length - 1;
+                break;
+              }
+            }
+          }
+        }
+
+        // 雙擊中文意思查詢檢測 (300ms)
+        if (clickedCard) {
+          const now = Date.now();
+          if (this.lastTapCard === clickedCard && (now - this.lastTapTime) < 300) {
+            clickedCard.toggleTranslation();
+            sfx.playFlip();
+            this.lastTapTime = 0;
+            this.lastTapCard = null;
+            return; 
+          } else {
+            this.lastTapTime = now;
+            this.lastTapCard = clickedCard;
+          }
+
+          if (clickedCard.isShowingTranslation) {
+            clickedCard.toggleTranslation();
+          }
+
+          let cardsToDrag = [clickedCard];
+          // 工作疊拖曳：攜帶上方所有跟隨卡片
+          if (originPileRef !== this.wastePile && !this.targetSlots.includes(originPileRef)) {
+            cardsToDrag = originPileRef.slice(dragStartIndex);
+          }
+
+          let offsets = cardsToDrag.map(c => ({
+            dx: c.x - pos.x,
+            dy: c.y - pos.y
+          }));
+
+          cardsToDrag.forEach(c => c.isDragging = true);
+          
+          this.draggedStack = {
+            cards: cardsToDrag,
+            originPile: originPileRef,
+            originIndex: dragStartIndex,
+            relativeOffsets: offsets
+          };
+
+          // 從原數組移除
+          if (originPileRef === this.wastePile || this.targetSlots.includes(originPileRef)) {
+            originPileRef.pop();
+          } else {
+            originPileRef.splice(dragStartIndex);
+          }
+          sfx.playFlip();
+        } else {
+          this.lastTapTime = 0;
+          this.lastTapCard = null;
+        }
+      }
+
+      handleMove(e) {
+        if (!this.draggedStack) return;
+        const pos = this.getCanvasCoords(e);
+        
+        this.draggedStack.cards.forEach((card, idx) => {
+          const offset = this.draggedStack.relativeOffsets[idx];
+          card.x = pos.x + offset.dx;
+          card.y = pos.y + offset.dy;
+        });
+      }
+
+      handleEnd(e) {
+        if (!this.draggedStack) return;
+        
+        const leadCard = this.draggedStack.cards[0];
+        const cx = leadCard.x + this.cardWidth / 2;
+        const cy = leadCard.y + this.cardHeight / 2;
+        
+        let dropSuccess = false;
+
+        // 1. 目標槽檢測 (支援一整疊內容卡一次拖入)
+        for (let slotIdx = 0; slotIdx < 4; slotIdx++) {
+          const targetX = this.targetSlotsX[slotIdx];
+          const targetY = this.targetSlotsY;
+          
+          if (cx >= targetX && cx <= targetX + this.cardWidth &&
+              cy >= targetY && cy <= targetY + this.cardHeight) {
+            
+            if (this.isValidMoveToTarget(leadCard, slotIdx)) {
+              this.draggedStack.cards.forEach(card => {
+                card.isDragging = false;
+                card.targetX = targetX;
+                card.targetY = targetY; 
+                this.targetSlots[slotIdx].push(card);
+              });
+              
+              this.moves++;
+              document.getElementById("moveCounter").textContent = this.moves;
+              sfx.playPlace();
+              dropSuccess = true;
+              
+              this.checkThemeCompletion(slotIdx);
+              break;
+            }
+          }
+        }
+
+        // 2. 工作疊檢測
+        if (!dropSuccess) {
+          for (let pileIdx = 0; pileIdx < 4; pileIdx++) {
+            const targetX = this.workPilesX[pileIdx];
+            const pile = this.workPiles[pileIdx];
+            let targetY = this.workPilesY;
+            let activeHeight = this.cardHeight;
+            
+            if (pile.length > 0) {
+              const topCard = pile[pile.length - 1];
+              targetY = topCard.y;
+            }
+            
+            if (cx >= targetX && cx <= targetX + this.cardWidth &&
+                cy >= targetY && cy <= targetY + activeHeight) {
+              
+              if (this.isValidMoveToWork(leadCard, pileIdx)) {
+                this.draggedStack.cards.forEach(card => {
+                  card.isDragging = false;
+                  this.workPiles[pileIdx].push(card);
+                });
+
+                this.arrangePile(this.workPiles[pileIdx], this.workPilesX[pileIdx], this.workPilesY);
+                
+                this.moves++;
+                document.getElementById("moveCounter").textContent = this.moves;
+                sfx.playPlace();
+                dropSuccess = true;
+                break;
+              }
+            }
+          }
+        }
+
+        // 3. 拖曳失敗彈回 (徹底修復廢牌堆拖曳不合法時消失的 Bug)
+        if (!dropSuccess) {
+          sfx.playError();
+          const origin = this.draggedStack.originPile;
+          
+          if (origin === this.wastePile) {
+            const card = this.draggedStack.cards[0];
+            card.isDragging = false;
+            card.targetX = this.wastePileX;
+            card.targetY = this.wastePileY;
+            this.wastePile.push(card); // 精確修復：將遺失的卡牌推回廢牌堆數組！
+          } else if (this.targetSlots.includes(origin)) {
+            const card = this.draggedStack.cards[0];
+            card.isDragging = false;
+            const sIdx = this.targetSlots.indexOf(origin);
+            card.targetX = this.targetSlotsX[sIdx];
+            card.targetY = this.targetSlotsY;
+            origin.push(card);
+          } else {
+            this.draggedStack.cards.forEach(card => {
+              card.isDragging = false;
+              origin.push(card);
+            });
+            const pIdx = this.workPiles.indexOf(origin);
+            this.arrangePile(origin, this.workPilesX[pIdx], this.workPilesY);
+          }
+        } else {
+          // 移動成功：自動翻開原工作疊最上方卡牌
+          if (this.workPiles.includes(this.draggedStack.originPile)) {
+            const originPile = this.draggedStack.originPile;
+            if (originPile.length > 0) {
+              let nextTopCard = originPile[originPile.length - 1];
+              if (!nextTopCard.isFaceUp) {
+                nextTopCard.flip();
+                sfx.playFlip();
+              }
+            }
+          }
+        }
+
+        this.draggedStack = null;
+      }
+
+      // 7. 合法性判定邏輯
+      isValidMoveToTarget(leadCard, slotIdx) {
+        const slot = this.targetSlots[slotIdx];
+        const draggedCards = this.draggedStack.cards;
+        
+        // 確保拖曳的整疊卡牌全部屬於同一個家族
+        const familyIdx = leadCard.familyIndex;
+        if (!draggedCards.every(c => c.familyIndex === familyIdx)) return false;
+        
+        if (slot.length === 0) {
+          // 空槽：必須由主題卡帶頭，且必須為最底層拖出
+          return leadCard.isTheme;
+        } else {
+          // 已有主題：確認其餘內容卡符合該槽主題
+          const themeCard = slot[0];
+          if (familyIdx !== themeCard.familyIndex) return false;
+          
+          // 如果目標槽中已有主題，被移入卡中不能再有主題卡
+          if (draggedCards.some(c => c.isTheme)) return false;
+          
+          return true;
+        }
+      }
+
+      // 工作疊規則：主題卡可以放內容卡上面，但內容卡不能放主題卡上面
+      isValidMoveToWork(card, pileIdx) {
+        const pile = this.workPiles[pileIdx];
+        
+        // A. 疊空槽：任何牌均可入
+        if (pile.length === 0) return true;
+        
+        // B. 已有牌：必須是同一個 Word Family 家族
+        const topCard = pile[pile.length - 1];
+        if (card.familyIndex !== topCard.familyIndex) return false;
+        
+        // 規則核心限制：
+        // 若最上層是「主題卡」：不允許任何牌疊加在其下方（內容卡不可疊在主題卡下方）
+        if (topCard.isTheme) {
+          return false;
+        }
+        
+        // 若最上層是「內容卡」：允許主題卡或內容卡疊放其下方
+        return true; 
+      }
+
+      handleDrawPileClick() {
+        if (this.drawPile.length === 0) return;
+
+        let card = this.drawPile.pop();
+        card.targetX = this.wastePileX;
+        card.targetY = this.wastePileY;
+        card.flip(); 
+        this.wastePile.push(card);
+        
+        this.moves++;
+        document.getElementById("moveCounter").textContent = this.moves;
+        sfx.playFlip();
+      }
+
+      checkThemeCompletion(slotIdx) {
+        const slot = this.targetSlots[slotIdx];
+        if (slot.length === 0) return;
+        
+        const themeCard = slot[0];
+        const familyIdx = themeCard.familyIndex;
+        const requiredContentsCount = WORD_FAMILIES[familyIdx].contents.length;
+        
+        // 檢測是否集滿：1張主題卡 + 所有對應內容卡
+        if (slot.length === requiredContentsCount + 1) {
+          this.triggerThemeCompletion(slotIdx, familyIdx);
+        }
+      }
+
+      triggerThemeCompletion(slotIdx, familyIdx) {
+        sfx.playComplete();
+        const slot = this.targetSlots[slotIdx];
+        const familyColor = FAMILY_COLORS[familyIdx].main;
+        
+        slot.forEach(card => {
+          card.isMatched = true;
+        });
+
+        this.completedFamilies.add(familyIdx);
+        this.updateSidebarUI();
+
+        let glowDirection = 1;
+        let animationFrameCount = 0;
+        
+        const interval = setInterval(() => {
+          animationFrameCount++;
+          
+          slot.forEach(card => {
+            card.glowIntensity += 0.15 * glowDirection;
+            if (card.glowIntensity >= 1.0) {
+              card.glowIntensity = 1.0;
+              glowDirection = -1;
+            } else if (card.glowIntensity <= 0.2) {
+              card.glowIntensity = 0.2;
+              glowDirection = 1;
+            }
+          });
+
+          const startX = this.targetSlotsX[slotIdx] + this.cardWidth / 2;
+          const startY = this.targetSlotsY + this.cardHeight / 2;
+          for (let p = 0; p < 4; p++) {
+            this.particles.push(new Particle(startX, startY, familyColor));
+          }
+
+          if (animationFrameCount > 35) {
+            clearInterval(interval);
+            
+            const fadeInterval = setInterval(() => {
+              let finished = false;
+              slot.forEach(card => {
+                card.alpha -= 0.08;
+                if (card.alpha <= 0) {
+                  card.alpha = 0;
+                  finished = true;
+                }
+              });
+
+              if (finished) {
+                clearInterval(fadeInterval);
+                this.targetSlots[slotIdx] = []; 
+                this.completeTimers[slotIdx] = null;
+                this.checkVictory();
+              }
+            }, 30);
+          }
+        }, 30);
+
+        this.completeTimers[slotIdx] = interval;
+      }
+
+      checkVictory() {
+        if (this.completedFamilies.size === 7) {
+          this.isGameOver = true;
+          clearInterval(this.timerInterval);
+          sfx.playVictory();
+          
+          for (let i = 0; i < 150; i++) {
+            const rx = Math.random() * this.canvas.width;
+            const ry = Math.random() * 200 - 50;
+            const color = FAMILY_COLORS[Math.floor(Math.random() * 7)].main;
+            this.particles.push(new Particle(rx, ry, color));
+          }
+
+          setTimeout(() => {
+            const modal = document.getElementById("victoryModal");
+            const content = document.getElementById("victoryContent");
+            document.getElementById("finalMoves").textContent = this.moves;
+            document.getElementById("finalTime").textContent = document.getElementById("timerDisplay").textContent;
+            
+            modal.classList.remove("opacity-0", "pointer-events-none");
+            content.classList.remove("scale-90");
+          }, 1000);
+        }
+      }
+
+      updateSidebarUI() {
+        const container = document.getElementById("familyListContainer");
+        container.innerHTML = "";
+        
+        WORD_FAMILIES.forEach((family, idx) => {
+          const color = FAMILY_COLORS[idx];
+          const isDone = this.completedFamilies.has(idx);
+          
+          const cardDiv = document.createElement("div");
+          cardDiv.className = `p-3.5 rounded-2xl border transition-all duration-300 ${
+            isDone 
+              ? "bg-slate-800/40 border-emerald-500/40 text-slate-400" 
+              : "bg-slate-800/90 border-slate-700 hover:border-slate-600 text-slate-200"
+          }`;
+          
+          cardDiv.innerHTML = `
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full" style="background-color: ${color.main}"></span>
+                <span class="font-bold text-sm tracking-tight text-white">${family.theme}</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded-md font-medium" style="background-color: ${color.bg}; color: ${color.text}">
+                  ${color.label}
+                </span>
+              </div>
+              <div class="text-xs font-bold">
+                ${isDone 
+                  ? `<span class="text-emerald-400 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> 已解鎖</span>` 
+                  : `<span class="text-amber-500">未完成 (${family.contents.length} 張內容)</span>`
+                }
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-1.5 text-xs">
+              ${family.contents.map(w => `
+                <span class="px-2 py-1 rounded-lg ${
+                  isDone 
+                    ? "bg-slate-900/60 text-slate-500 line-through" 
+                    : "bg-slate-900/80 text-slate-300 border border-slate-700/50"
+                }">
+                  ${w}
+                </span>
+              `).join('')}
+            </div>
+          `;
+          
+          container.appendChild(cardDiv);
+        });
+
+        document.getElementById("progressCount").textContent = `${this.completedFamilies.size} / 7`;
+      }
+
+      startTimer() {
+        this.startTime = Date.now();
+        this.timerInterval = setInterval(() => {
+          if (this.isGameOver) return;
+          const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+          const min = String(Math.floor(elapsed / 60)).padStart(2, "0");
+          const sec = String(elapsed % 60).padStart(2, "0");
+          document.getElementById("timerDisplay").textContent = `${min}:${sec}`;
+        }, 1000);
+      }
+
+      resetTimer() {
+        clearInterval(this.timerInterval);
+        document.getElementById("timerDisplay").textContent = "00:00";
+        this.startTimer();
+      }
+
+      render() {
+        this.allCards.forEach(card => card.update());
+        
+        this.particles.forEach((p, idx) => {
+          p.update();
+          if (p.alpha <= 0) this.particles.splice(idx, 1);
+        });
+
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // 1. 繪製純墨綠色高質感牌桌
+        ctx.fillStyle = "#0e3e1d";
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // 2. 繪製左上角 4 個目標槽的精緻虛線框與進度
+        for (let i = 0; i < 4; i++) {
+          const slotX = this.targetSlotsX[i];
+          const slotY = this.targetSlotsY;
+          const slot = this.targetSlots[i];
+
+          ctx.save();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+          ctx.lineWidth = 2 * this.scaleRatio;
+          ctx.setLineDash([6 * this.scaleRatio, 4 * this.scaleRatio]);
+          ctx.beginPath();
+          ctx.roundRect(slotX, slotY, this.cardWidth, this.cardHeight, 10 * this.scaleRatio);
+          ctx.stroke();
+          ctx.restore();
+
+          if (slot.length === 0) {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+            ctx.font = `bold ${12 * this.scaleRatio}px 'Outfit', 'Noto Sans TC', sans-serif`;
+            ctx.textAlign = "center";
+            ctx.fillText("放置主題卡", slotX + this.cardWidth / 2, slotY + this.cardHeight / 2 - 8 * this.scaleRatio);
+            ctx.font = `${10 * this.scaleRatio}px 'Noto Sans TC', sans-serif`;
+            ctx.fillText("(Theme)", slotX + this.cardWidth / 2, slotY + this.cardHeight / 2 + 12 * this.scaleRatio);
+          } else {
+            const themeCard = slot[0];
+            const totalContents = WORD_FAMILIES[themeCard.familyIndex].contents.length;
+            const currentCount = slot.length - 1; 
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.7)"; 
+            ctx.font = `900 ${12 * this.scaleRatio}px 'Outfit', sans-serif`;
+            ctx.textAlign = "center";
+            ctx.fillText(`${currentCount} / ${totalContents}`, slotX + this.cardWidth / 2, slotY + this.cardHeight + 20 * this.scaleRatio);
+          }
+        }
+
+        // 3. 繪製空工作疊虛線框
+        for (let i = 0; i < 4; i++) {
+          const pX = this.workPilesX[i];
+          const pY = this.workPilesY;
+          const pile = this.workPiles[i];
+
+          if (pile.length === 0) {
+            ctx.save();
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+            ctx.lineWidth = 2 * this.scaleRatio;
+            ctx.setLineDash([4 * this.scaleRatio, 4 * this.scaleRatio]);
+            ctx.beginPath();
+            ctx.roundRect(pX, pY, this.cardWidth, this.cardHeight, 10 * this.scaleRatio);
+            ctx.stroke();
+            
+            ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+            ctx.font = `bold ${11 * this.scaleRatio}px 'Outfit', 'Noto Sans TC', sans-serif`;
+            ctx.textAlign = "center";
+            ctx.fillText("可放任意卡", pX + this.cardWidth / 2, pY + this.cardHeight / 2 + 5 * this.scaleRatio);
+            ctx.restore();
+          }
+        }
+
+        // 4. 繪製發牌堆
+        const dX = this.drawPileX;
+        const dY = this.drawPileY;
+        if (this.drawPile.length > 0) {
+          const topCard = this.drawPile[this.drawPile.length - 1];
+          topCard.draw(ctx, this.scaleRatio);
+
+          ctx.save();
+          ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+          ctx.beginPath();
+          ctx.arc(dX + this.cardWidth / 2, dY + this.cardHeight / 2, 22 * this.scaleRatio, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#fbbf24";
+          ctx.lineWidth = 1.5 * this.scaleRatio;
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `bold ${13 * this.scaleRatio}px 'Outfit', sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(this.drawPile.length, dX + this.cardWidth / 2, dY + this.cardHeight / 2);
+          ctx.restore();
+        } else {
+          ctx.save();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+          ctx.lineWidth = 2 * this.scaleRatio;
+          ctx.beginPath();
+          ctx.roundRect(dX, dY, this.cardWidth, this.cardHeight, 10 * this.scaleRatio);
+          ctx.stroke();
+          
+          ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+          ctx.font = `bold ${24 * this.scaleRatio}px 'Outfit', sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("∅", dX + this.cardWidth / 2, dY + this.cardHeight / 2);
+          ctx.restore();
+        }
+
+        // 5. 繪製廢牌堆
+        if (this.wastePile.length > 0) {
+          const len = this.wastePile.length;
+          if (len > 1 && !this.wastePile[len-2].isDragging) {
+            this.wastePile[len-2].draw(ctx, this.scaleRatio);
+          }
+          const topCard = this.wastePile[len - 1];
+          if (!topCard.isDragging) {
+            topCard.draw(ctx, this.scaleRatio);
+          }
+        } else {
+          ctx.save();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+          ctx.lineWidth = 2 * this.scaleRatio;
+          ctx.beginPath();
+          ctx.roundRect(this.wastePileX, this.wastePileY, this.cardWidth, this.cardHeight, 10 * this.scaleRatio);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 6. 繪製固定在槽中的卡片
+        this.targetSlots.forEach(slot => {
+          slot.forEach(card => {
+            if (!card.isDragging) card.draw(ctx, this.scaleRatio);
+          });
+        });
+
+        // 7. 繪製工作疊卡牌
+        this.workPiles.forEach(pile => {
+          pile.forEach(card => {
+            if (!card.isDragging) card.draw(ctx, this.scaleRatio);
+          });
+        });
+
+        // 8. 繪製拖曳中卡片 (確保覆蓋在最上層)
+        if (this.draggedStack) {
+          this.draggedStack.cards.forEach(card => {
+            card.draw(ctx, this.scaleRatio);
+          });
+        }
+
+        // 9. 繪製粒子
+        this.particles.forEach(p => p.draw(ctx));
+
+        requestAnimationFrame(() => this.render());
+      }
+    }
+
+    // 8. 初始化控制按鈕與彈窗交互
+    let game;
+    window.onload = function () {
+      game = new WordSolitaireGame();
+
+      // 音效靜音控制
+      const muteBtn = document.getElementById("muteBtn");
+      const muteIcon = document.getElementById("muteIcon");
+      muteBtn.addEventListener("click", () => {
+        sfx.muted = !sfx.muted;
+        if (sfx.muted) {
+          muteIcon.className = "fa-solid fa-volume-xmark";
+          muteBtn.classList.add("bg-slate-800", "border-slate-800");
+        } else {
+          muteIcon.className = "fa-solid fa-volume-high";
+          sfx.playPlace(); 
+        }
+      });
+
+      // 重新開始
+      document.getElementById("restartBtn").addEventListener("click", () => {
+        game.initGame();
+        sfx.playPlace();
+      });
+
+      // 勝利視窗再玩一次
+      document.getElementById("modalPlayAgainBtn").addEventListener("click", () => {
+        const modal = document.getElementById("victoryModal");
+        modal.classList.add("opacity-0", "pointer-events-none");
+        game.initGame();
+        sfx.playPlace();
+      });
+
+      // Modal 顯示與隱藏交互
+      const rulesBtn = document.getElementById("rulesBtn");
+      const handbookBtn = document.getElementById("handbookBtn");
+      const rulesModal = document.getElementById("rulesModal");
+      const handbookModal = document.getElementById("handbookModal");
+
+      rulesBtn.addEventListener("click", () => {
+        sfx.playPlace();
+        rulesModal.classList.remove("opacity-0", "pointer-events-none");
+        rulesModal.querySelector("div").classList.remove("scale-95");
+      });
+
+      handbookBtn.addEventListener("click", () => {
+        sfx.playPlace();
+        handbookModal.classList.remove("opacity-0", "pointer-events-none");
+        handbookModal.querySelector("div").classList.remove("scale-95");
+      });
+
+      // 綁定所有關閉 Modal 按鈕
+      document.querySelectorAll(".close-modal-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          sfx.playPlace();
+          const modal = e.target.closest(".fixed");
+          modal.classList.add("opacity-0", "pointer-events-none");
+          modal.querySelector("div").classList.add("scale-95");
+        });
+      });
+
+      // 啟動主繪製
+      game.render();
+    }
+  </script>
+</body>
+</html>
